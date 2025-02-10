@@ -1,0 +1,76 @@
+---
+title: "DATA 607 WEEK 1 ASSIGNMENT"
+author: "Barakat Adigun"
+date: "2025-02-10"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(openintro)
+```
+
+## Overview
+The Data I will be working with for this assignment provides insights into global alcohol consumption by examining data from the World Health Organization's Global Information System on Alcohol and Health (GISAH) for 2010. The data is categorized by the type of alcohol; consumed—beer, wine, and spirits, and looks at the average servings per person in different countries.
+
+## Article Link:
+https://fivethirtyeight.com/features/dear-mona-followup-where-do-people-drink-the-most-beer-wine-and-spirits/
+
+## DataSource:
+https://data.fivethirtyeight.com
+
+```{r}
+##Load Data
+
+AlcoholCosumption <- read.csv(file="https://raw.githubusercontent.com/Badigun/Data-607-Assignments/refs/heads/main/drinks.csv", header = TRUE, sep = ",")
+```
+
+```{r}
+AlcoholConsumDATA <- data.frame(AlcoholCosumption$country, AlcoholCosumption$beer_servings, AlcoholCosumption$spirit_servings, AlcoholCosumption$wine_servings, AlcoholCosumption$total_litres_of_pure_alcohol)
+
+colnames(AlcoholConsumDATA) <- c("COUNTRY", "BEER", "SPIRIT", "WINE", "TOTAL LITRES")
+
+AlcoholConsumDATA
+```
+
+```{r}
+##Countries where Alcohol is consume
+
+Alcohol_Consumption <- subset(AlcoholConsumDATA, BEER > 0 & SPIRIT > 0 & WINE > 0 )
+Alcohol_Consumption <- Alcohol_Consumption[, c("COUNTRY", "BEER", "SPIRIT", "WINE")]
+Alcohol_Consumption
+```
+
+```{r}
+##Countries where Alcohol is not consume
+
+NonAlcohol_Consumption <- subset(AlcoholConsumDATA, BEER <= 0 & SPIRIT <= 0 & WINE <= 0 )
+NonAlcohol_Consumption <- NonAlcohol_Consumption[, c("COUNTRY", "BEER", "SPIRIT", "WINE")]
+NonAlcohol_Consumption
+```
+
+```{r}
+##Histogram showing how much wine consume using ggplot
+
+ggplot(data = Alcohol_Consumption, aes(x = WINE ) ) +
+  geom_histogram(binwidth = 100)
+```
+
+```{r}
+ggplot(data = Alcohol_Consumption, aes(x = SPIRIT ) ) +
+  geom_histogram(binwidth = 50)
+```
+
+```{r}
+ggplot(data = Alcohol_Consumption, aes(x = BEER ) ) +
+  geom_histogram(binwidth = 100)
+```
+
+## CONCLUSION
+The study reveals distinct regional preferences in alcohol consumption: beer is most popular in Central and Eastern Europe, wine is favored in Southern Europe, and spirits dominate in Eastern European countries. Also most of the countries consumes Alcohol; 13 total countries does not consume Alcohol. 
