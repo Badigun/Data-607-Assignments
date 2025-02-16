@@ -1,0 +1,106 @@
+---
+title: "ASSIGNMENT 2 DATA 607"
+author: "Barakat Adigun"
+date: "2025-02-13"
+output: html_document
+---
+
+###
+Part 1: Build Table
+• Choose six recent popular movies.
+• Ask at least five people that you know (friends, family, classmates, imaginary friends if
+necessary) to rate each of these movies that they have seen on a scale of 1 to 5.
+
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
+
+```{r}
+library(DBI)
+```
+
+```{r}
+# Load the library
+library(RMySQL)
+```
+
+###
+Part 2: Store data in SQL database
+• Take the results (observations) and store them in the class MySQL database:
+- Server name: cunydata607sql.mysql.database.azure.com
+- Username / password: will be given to you in an email
+Note: it is good practice to change your password. To do so, use this SQL command:
+SET PASSWORD = ‘<your new password here>';
+
+```{r}
+# Connect to the database
+con <- dbConnect(RMySQL::MySQL(), 
+                 host = "cuny607sql.mysql.database.azure.com",  
+                 port = 3306,                  
+                 user = "barakat.adigun41",       
+                 password = "83da4eb005b9564e",   
+                 dbname = "barakat.adigun41")
+```
+
+```{r}
+# Check Connection
+if (!dbIsValid(con)) {
+stop ("Connection failed")
+} else {
+print ("Connection successful")
+}
+```
+
+###
+Part 3: Transfer data from SQL database to R dataframe
+• Load the information from the SQL database into an R dataframe.
+
+```{r}
+# Transfer Data
+query <- "SELECT * FROM MovieRating2;"  
+df <- dbGetQuery(con, query)
+```
+
+```{r}
+# Check transfered data
+head(df)
+```
+
+###
+Part 4: Missing data strategy
+• Implement an approach to missing data
+• Explain why you decided to take the chosen approach
+Note: consider that later in the course you will revisit this information you have collected and
+will use it to implement a Recommender.
+
+```{r}
+# Remove rows with any missing data
+clean_data <- na.omit(df)
+
+# View the cleaned data
+head(clean_data)
+```
+
+### Part 4 Answer:
+An approach to missing data is by Removing Rows (Complete Case Analysis): This approach works when the missingness is rare, and you don’t want to introduce any imputation bias. It's also useful when your dataset is large, and losing some rows doesn’t impact the analysis significantly. The best approach will depend on your specific data and analysis. For instance; If you have a small amount of missing data, removing it might be fine.
+
+###
+Also, Mean/Median Imputation is another approach to missing data. This is a simple and effective way to deal with missing data, especially when the data are missing randomly, and you don’t want to lose information. Median imputation is generally preferred over mean imputation for numerical data as it's less sensitive to outliers.
+
+### Bonus Challenge Questions:
+While it’s acceptable to create a single SQL table, can you create a normalized set of tables
+that corresponds to the relationship between your movie viewing friends and the movies
+being rated?
+## Answer: Yes, it’s definitely possible to design a normalized set of tables that represents the relationship between movie-viewing friends and the movies they rate. To normalize the database, we want to ensure that the data is organized in a way that reduces redundancy and potential update anomalies.
+
+```{r}
+if (!exists("conn")) {
+  print("Connection is successfully closed.")
+} else {
+  print("Connection still exists.")
+}
+```
+
+
+____
