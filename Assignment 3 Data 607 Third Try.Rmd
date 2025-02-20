@@ -1,0 +1,206 @@
+---
+title: "Assignment 3 DATA 607"
+author: "Barakat Adigun"
+date: "2025-02-18"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+```
+
+## Instructions
+Please deliver links to an R Markdown file (in GitHub and rpubs.com) with solutions to the problems below.  You may work in a small group, but please submit separately with names of all group participants in your submission.
+
+## Normalization Question 1
+Provide an example of at least three dataframes in R that demonstrate normalization. The dataframes can contain any data, either real or synthetic. Although normalization is typically done in SQL and relational databases, you are expected to show this example in R, as it is our main work environment in this course.
+
+## Question 1 Answer:
+Schema Normalization is the process of organizing the structure of a relational database to minimize redundancy, avoid anomalies, and improve data integrity. The goal is to break down large, redundant tables into smaller, logically related ones, adhering to certain rules called normal forms (First Normal Form, Second Normal Form, Third Normal Form).
+
+DataFrame 1: Unnormalized Data (Denormalized Table)
+```{r}
+# Original Denormalized student data (includes student, course, and instructor information)
+StudentData_original <- data.frame(
+  StudentID = 1:5,
+  StudentName = c("Alice", "Bob", "Charlie", "David", "Eva"),
+  CourseName = c("Math", "Math", "Science", "Math", "Science"),
+  Instructor = c("Dr. Matthew", "Dr. Matthew", "Dr. Stein", "Dr. Matthew", "Dr. Stein"),
+  Grade = c("B", "C", "A", "A", "B")
+)
+
+print(StudentData_original)
+```
+
+DataFrame 2: First Normal Form - ensures that the table had atomic values (record is unique) and no repeating groups.
+```{r}
+# Ensuring uniqueness by removing duplicate rows (if any)
+StudentData_1nf <- StudentData_original %>%
+  distinct()
+
+print(StudentData_1nf)
+```
+
+DataFrame 3: Second Normal Form - separate data into tables that avoid partial dependencie (eliminates partial dependencies by splitting student and enrollment data).
+```{r}
+# Students Table (StudentID, StudentName)
+StudentData_students <- StudentData_1nf %>%
+  select(StudentID, StudentName) %>%
+  distinct()
+
+print(StudentData_students)
+```
+
+```{r}
+# Enrollments Table (StudentID, CourseName, Instructor, Grade)
+StudentData_enrollments <- StudentData_1nf %>%
+  select(StudentID, CourseName, Instructor, Grade) %>%
+  distinct()
+
+print(StudentData_enrollments)
+```
+
+DataFrame 4: Third Normal Form -  further separate data to remove transitive dependencies (removes transitive dependencies by separating course and instructor information into a new table).
+```{r}
+# Courses Table (CourseName, Instructor)
+StudentData_courses <- StudentData_enrollments %>%
+  select(CourseName, Instructor) %>%
+  distinct()
+
+print(StudentData_courses)
+```
+
+```{r}
+# Enrollments Table (StudentID, CourseName, Grade)
+StudentData_enrollments_3nf <- StudentData_enrollments %>%
+  select(StudentID, CourseName, Grade)
+
+print(StudentData_enrollments_3nf)
+```
+
+## Character Manipulation Question 2
+Using the 173 majors listed in fivethirtyeight.com’s College Majors dataset [https://fivethirtyeight.com/features/the-economic-guide-to-picking-a-college-major/], provide code that identifies the majors that contain either "DATA" or "STATISTICS"
+
+```{r}
+# Load the dataset 
+url <- "https://raw.githubusercontent.com/Badigun/Data-607-Assignments/refs/heads/main/majors-list.csv"
+majors_list <- read.csv(url)
+
+# Check the dataset
+head(majors_list)
+
+# Filter majors that contain "DATA" or "STATISTICS"
+filtered_Majors_Data <- majors_list %>%
+  filter(grepl("DATA|STATISTICS", Major, ignore.case = TRUE))
+
+# Display the filtered majors
+print(filtered_Majors_Data$Major)
+```
+
+## The two exercises below are taken from R for Data Science, 14.3.5.1 in the on-line version:
+
+## Question 3: Describe, in words, what these expressions will match:
+
+(.)\1\1
+Answer: This expression matches any three consecutive characters where the first character is repeated two more times. For example, it will match strings like "aaa", "bbb" where the first character repeats twice more.
+```{r}
+text <- c("aaa", "abc", "333", "bbb1")
+
+pattern <- "(.)\\1\\1"
+
+matches <- grep(pattern, text, value = TRUE)
+
+print(matches)
+```
+
+"(.)(.)\\2\\1"
+Answer: This expression matches a string with two characters, followed by those same two characters in reverse order. For example, it will match strings like "abba". The first character is matched again as the last character, and the second character is matched again as the second-to-last character.
+```{r}
+text <- c("abba", "zyyz", "213312", "abc", "cccf")
+
+pattern <- "(.)(.)\\2\\1"
+
+matches <- grep(pattern, text, value = TRUE)
+
+print(matches)
+```
+
+(..)\1
+Answer: This expression matches a string where the first two characters are exactly repeated after them. For example, it will match strings like "abab", or "1212". It requires that the first two characters are the same as the next two characters.
+```{r}
+text <- c("cdcdcd", "abab", "1212", "ijkl", "aaab", "abcabc")
+
+pattern <- "(..)\\1"
+
+matches <- grep(pattern, text, value = TRUE)
+
+print(matches)
+
+```
+
+"(.).\\1.\\1"
+Answer: This expression matches strings where the first character appears three times, with two other characters in between. For example, it will match strings like "acaca".
+```{r}
+text <- c("acaca", "axa", "121244", "abc", "xyzzyx")
+
+pattern <- "(.).\\1.\\1"
+
+matches <- grep(pattern, text, value = TRUE)
+
+print(matches)
+```
+
+"(.)(.)(.).*\\3\\2\\1"
+Answer: This expression matches strings where the first three characters are followed by any characters, and then those three characters are repeated in reverse order. For example, it will match strings like "abcxyzcba", or "123xyzyx321". The first three characters appear again after some characters, but in reverse order.
+```{r}
+text <- c("xyzabzzyx", "123xyz321", "xyzabczyx", "efgj", "abcd", "abcdefgj")
+
+pattern <- "(.)(.)(.).*\\3\\2\\1"
+
+matches <- grep(pattern, text, value = TRUE)
+
+print(matches)
+```
+
+## Question 4: Construct regular expressions to match words that:
+- Start and end with the same character - \\b([a-zA-Z]).*\\1\\b
+```{r}
+#examples
+text <- c("plump", "pen", "radar", "noon", "civic", "world")
+
+# Regex pattern to match words that start and end with the same character
+pattern <- "\\b([a-zA-Z]).*\\1\\b"
+
+# use grep to find words that match the pattern
+matches <- grep(pattern, text, value = TRUE)
+print(matches)
+```
+
+- Contain a repeated pair of letters (e.g. "church" contains "ch" repeated twice.) - \\b([a-zA-Z]{2}).*\\1\\b
+```{r}
+# Sample text
+text <- c("church", "money", "success", "monkey", "love")
+
+pattern <- "\\b([a-zA-Z]{2}).*\\1\\b"
+
+# Find words that match the pattern
+matches <- grep(pattern, text, value = TRUE)
+print(matches)
+```
+
+- Contain one letter repeated in at least three places (e.g. "eleven" contains three "e"s.) - \\b([a-zA-Z]).*\\1.*\\1\\b
+```{r}
+text <- c("love", "balloon", "success", "hello", "apple", "test")
+
+pattern <- "\\b([a-zA-Z]).*\\1.*\\1\\b"
+
+matches <- grep(pattern, text, value = TRUE)
+print(matches)
+```
+
+
+
+____
