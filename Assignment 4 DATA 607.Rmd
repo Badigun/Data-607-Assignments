@@ -1,0 +1,131 @@
+---
+title: "Assignment 4 DATA 607 Tidying and Transforming Data"
+author: "Barakat Adigun"
+date: "2025-03-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The chart above describes arrival delays for two airlines across five destinations. Your task is to:
+
+## (1) Create a .CSV file (or optionally, a MySQL database!) that includes all of the information above. You’re encouraged to use a “wide” structure similar to how the information appears above, so that you can practice tidying and transformations as described below.
+Answer: The .CSV file created will be attached to the assignment file
+
+## (2) Read the information from your .CSV file into R, and use tidyr and dplyr as needed to tidy and transform your data.
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+## Load Data into R
+
+Flight_ArrDelay <- read.csv(file="https://raw.githubusercontent.com/Badigun/Data-607-Assignments/refs/heads/main/Flights%20Arrival%3Adelays%20DATA%20607.csv", header = TRUE, sep = ",")
+```
+
+```{r}
+## View the loaded data to make sure it's loaded correctly
+head (Flight_ArrDelay)
+```
+
+```{r}
+# Create the dataset Manually
+FlightArrDelay <- tibble(
+  Destination = c("Los Angeles", "Phoenix", "San Diego", "San Francisco", "Seattle"),
+  `Alaska (On Time)` = c(497, 221, 212, 503, 1841),
+  `Alaska (Delayed)` = c(62, 12, 20, 102, 305),
+  `AM West (On Time)` = c(694, 4840, 383, 320, 201),
+  `AM West (Delayed)` = c(117, 415, 65, 129, 61)
+)
+
+# View the data
+head(FlightArrDelay)
+```
+
+```{r}
+# (tidyr) Pivot the data to a long format for easier analysis
+longer_FlightArrDelay <- FlightArrDelay %>%
+  pivot_longer(
+    cols = c(`Alaska (On Time)`, `Alaska (Delayed)`, `AM West (On Time)`, `AM West (Delayed)`),  
+    names_to = c("Airline", "Status"),                     
+    names_pattern = "(.*) \\((.*)\\)",                    
+    values_to = "Flights"
+  )
+
+# View the tidied data
+head(longer_FlightArrDelay)
+```
+
+```{r}
+# Filter the data for "On Time" flights
+ontime_flights <- longer_FlightArrDelay %>%
+  filter(Status == "On Time")
+
+# View the filtered data
+head(ontime_flights)
+```
+
+```{r}
+# Filter the data for "Delayed" flights
+Delayed_flights <- longer_FlightArrDelay %>%
+  filter(Status == "Delayed")
+
+# View the filtered data
+head(Delayed_flights)
+```
+
+```{r}
+# View the total flights for each airline and status
+totalflights <- longer_FlightArrDelay %>%
+  group_by(Airline, Status) %>%
+  summarise(Total_Flights = sum(Flights)) %>%
+  ungroup()
+
+print(totalflights)
+```
+
+## (3) Perform analysis to compare the arrival delays for the two airlines.
+
+```{r}
+# Calculate the proportion of delayed flights for each airline
+proportion_delayed <- longer_FlightArrDelay %>%
+  group_by(Airline) %>%
+  summarise(
+    Total_On_Time = sum(Flights[Status == "On Time"]),
+    Total_Delayed = sum(Flights[Status == "Delayed"]),
+    Total_Flights = sum(Flights),
+    Proportion_Delayed = Total_Delayed / Total_Flights
+  ) %>%
+  ungroup()
+
+print(proportion_delayed)
+```
+
+```{r}
+# Calculate the average number of delayed flights for each airline
+avg_delayed_flights <- longer_FlightArrDelay %>%
+  filter(Status == "Delayed") %>%
+  group_by(Airline) %>%
+  summarise(Average_Delayed_Flights = mean(Flights)) %>%
+  ungroup()
+
+print(avg_delayed_flights)
+```
+
+## Conclusion
+
+The analysis of arrival delays for Alaska Airlines and AM West Airlines revealed the following:
+
+- Proportion of Delayed Flights: Alaska Airlines has a higher proportion of delayed flights (13.3%) compared to AM West Airlines (10.9%).
+
+- Average Number of Delayed Flights: AM West Airlines experiences, on average, more delayed flights (157.4 per destination) than Alaska Airlines (100.2 per destination).
+
+
+____
