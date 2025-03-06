@@ -1,0 +1,209 @@
+---
+title: "Project 1 Data 607"
+author: "Barakat Adigun"
+date: "2025-03-05"
+output: html_document
+---
+
+## Project 1
+
+## In this project, you’re given a text file with chess tournament results where the information has some structure. Your job is to create an R Markdown file that generates a .CSV file (that could for example be imported into a SQL database) with the following information for all of the players: Player’s Name, Player’s State, Total Number of Points, Player’s Pre-Rating, and Average Pre Chess Rating of Opponents. For the first player, the information would be: Gary Hua, ON, 6.0, 1794, 1605. 1605 was calculated by using the pre-tournament opponents’ ratings of 1436, 1563, 1600, 1610, 1649, 1663, 1716, and dividing by the total number of games played.
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(readr)
+library(tidyr)
+library(stringr)
+```
+
+## Loading Data
+
+```{r}
+# Load Raw Text file Data from github
+
+file_path <- 'https://raw.githubusercontent.com/Badigun/Data-607-Assignments/refs/heads/main/chess%20tournament%20file.txt'
+
+tournament_data <- read_lines(file_path)
+
+# View the first few lines of the Data
+head(tournament_data)
+```
+
+```{r}
+tail(tournament_data)
+```
+
+## Edit Player information in the Data
+I observe that the data follows a specific pattern. The first four lines contain non-data information, so they are excluded from the dataset. After that, the player details and game statistics appear in a repeating sequence every three lines. The data is then organize into two matrices, one for player information and the other for their game statistics, to structure it like a more conventional dataset.
+
+Each player has two lines in the file, which includes;
+
+Line 1: Name, total points, and opponent numbers.
+
+Line 2: State and pre-rating.
+
+```{r}
+# Name, total points, and opponent numbers
+edit_tournament_data <- matrix(unlist(tournament_data), byrow=TRUE)
+
+m1 <- edit_tournament_data[seq(5,length(edit_tournament_data),3)]
+head(m1)
+```
+
+Another way to extract player information for Line 1: Name, total points, and opponent numbers
+
+```{r}
+# Identify lines that contain player information 
+player_lines <- tournament_data[grep("^\\s*\\d+", tournament_data)]
+
+# Extract Player's Name, Points, and Opponents
+players_info <- lapply(player_lines, function(line) {
+  elements <- unlist(strsplit(line, "\\|"))
+  elements <- trimws(elements)  # Remove leading and trailing spaces
+  
+  # Extract fields
+  name <- elements[2]  # Player Name
+  total_points <- as.numeric(elements[3])  # Total Points
+  opponents <- unlist(str_extract_all(elements[6:length(elements)], "\\d+"))  # Opponent Numbers
+  
+  return(list(name, total_points, opponents))
+})
+
+# Convert to DataFrame
+players_df <- data.frame(
+  Name = sapply(players_info, `[[`, 1),
+  Points = sapply(players_info, `[[`, 2),
+  Opponents = sapply(players_info, function(x) paste(x[[3]], collapse = ",")), # Convert list to string
+  stringsAsFactors = FALSE
+)
+head(players_df)
+```
+
+This code is to extract Line 2: State and pre-rating
+
+```{r}
+m2 <- edit_tournament_data[seq(6,length(edit_tournament_data),3)]
+head(m2)
+```
+
+Another way to extract Line 2: State and pre-rating
+
+```{r}
+# Find the second line for each player's entry (contains state & rating)
+rating_lines <- tournament_data[grep("R:\\s*\\d+", tournament_data)]
+
+# Extract State and Pre-Rating
+ratings_info <- lapply(rating_lines, function(line) {
+  elements <- unlist(strsplit(line, "\\|"))
+  elements <- trimws(elements)
+
+  state <- substr(elements[1], 1, 2)  # Extract first two letters as state
+  pre_rating <- as.numeric(str_extract(elements[2], "(?<=R:\\s)\\d+"))  # Extract pre-rating
+
+  return(list(state, pre_rating))
+})
+
+# Add to DataFrame
+players_df$State <- sapply(ratings_info, `[[`, 1)
+players_df$Pre_Rating <- sapply(ratings_info, `[[`, 2)
+```
+
+## Capturing The Data
+Since the Data is more organized, capturing of the data featured can be done
+
+```{r}
+# Convert m1 and m2 to character vectors 
+m1 <- as.character(m1)
+m2 <- as.character(m2)
+
+# Extract the ID (first number)
+ID <- as.numeric(str_extract(m1, '\\d+'))
+
+# Extract the Name (first combination of a letter, any amount of characters, and "|")
+Name <- str_extract(m1, '[A-Za-z].{1,32}') 
+
+# Extract the name part (up to two spaces) and trim whitespace
+Name <- str_trim(str_extract(Name, '.+\\s{2,}'))
+
+# Extract the state (first two uppercase letters) from m2
+State <- str_extract(m2, '[A-Z]{2}')
+
+# Extract the total number of points (number with a decimal)
+TotalNumberofPoints <- as.numeric(str_extract(m1, '\\d+\\.\\d'))
+
+# Extract the pre-rating (combination of "R", characters, and "-")
+PreRating <- str_extract(m2, 'R:.{8,}-')
+
+# Extract the numeric value from the pre-rating
+PreRating <- as.numeric(str_extract(PreRating, '\\d{1,4}'))
+
+# Extract all rounds (combinations of 1 letter, 2 spaces, and numbers)
+Rounds <- str_extract_all(m1, '[A-Z]\\s{2,}\\d+', simplify = TRUE)
+
+# Extract numbers from the rounds
+Rounds <- str_extract_all(Rounds, '\\d+', simplify = TRUE)
+```
+
+## Compute Average Opponent Pre-Rating
+
+Compute the average pre-rating of opponents using the vectors from the previous step
+
+```{r}
+# Check the structure of the dataframe before applying the function
+print(str(players_df))  # Ensure 'Opponents' column exists
+
+# Function to compute the average pre-rating of opponents
+calculate_avg_opponent_rating <- function(opponents, players_df) {
+  # Check if opponents string is valid
+  if (opponents == "" || is.na(opponents)) {
+    return(NA)  # Return NA if opponents data is missing
+  }
+  
+  # Convert opponent list (stored as string) into numeric vector
+  opponent_numbers <- as.numeric(unlist(strsplit(opponents, ",")))
+  
+  # Check if the opponent_numbers vector is valid
+  if (length(opponent_numbers) == 0 || any(is.na(opponent_numbers))) {
+    return(NA)  # Return NA if opponent numbers are invalid
+  }
+  
+  # Get the pre-ratings of the opponents, ensuring valid indexing
+  opponent_ratings <- players_df$Pre_Rating[match(opponent_numbers, seq_len(nrow(players_df)))]
+  
+  # Compute and return the average, handling NA values
+  return(round(mean(opponent_ratings, na.rm = TRUE), 1))
+}
+
+# Apply the function to the 'Opponents' column
+avg_ratings <- lapply(players_df$Opponents, function(opponents) calculate_avg_opponent_rating(opponents, players_df))
+
+# Check the result of the function
+print(length(avg_ratings))  # Should print the number of players (64)
+print(head(avg_ratings))    # Check the first few elements
+
+# If the result is correct, proceed to assign it to the dataframe
+if (length(avg_ratings) == nrow(players_df)) {
+  players_df$Avg_Opp_Pre_Rating <- unlist(avg_ratings)
+} else {
+  warning("The number of calculated ratings does not match the number of players!")
+}
+
+# Check the updated dataframe
+print(str(players_df))
+
+# Remove the 'Opponents' column if needed
+if("Opponents" %in% colnames(players_df)) {
+  players_df <- players_df %>% select(-Opponents)
+} else {
+  warning("Opponents column does not exist!")
+}
+```
+
+## Writing/Saving Data to CSV
+
+```{r}
+write_csv(players_df, "ChessTournament_results.csv")
+```
+
+
+
