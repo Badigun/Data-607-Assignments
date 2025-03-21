@@ -1,0 +1,386 @@
+---
+title: "Project 2 Week 6 DATA 607"
+author: "Barakat Adigun"
+date: "2025-03-20"
+output: html_document
+---
+
+
+## Questions
+
+The goal of this assignment is to give you practice in preparing different datasets for downstream analysis work. Your task is to:
+
+(1) Choose any three of the “wide” datasets identified in the Week 6 Discussion items. (You may use your own dataset; please don’t use my Sample Post dataset, since that was used in your Week 6 assignment!) For each of the three chosen datasets:
+
+ Create a .CSV file (or optionally, a MySQL database!) that includes all of the information included in the dataset. You’re encouraged to use a “wide” structure similar to how the information appears in the discussion item, so that you can practice tidying and transformations as described below.
+
+ Read the information from your .CSV file into R, and use tidyr and dplyr as needed to tidy and transform your data. [Most of your grade will be based on this step!]
+
+ Perform the analysis requested in the discussion item.
+
+ Your code should be in an R Markdown file, posted to rpubs.com, and should include narrative descriptions of your data cleanup work, analysis, and conclusions.
+
+(2) Please include in your homework submission, for each of the three chosen datasets:
+
+ The URL to the .Rmd file in your GitHub repository, and
+
+ The URL for your rpubs.com web page.
+
+```{r}
+# Load library
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(tidyr)
+library(stringr)
+library(data.table)
+library(ggplot2)
+```
+
+## DATASET 1
+
+I will be using my dataset firstly, The dataset shows sales figures for different products across multiple months for several regions. The data is messy because it's in wide format, with many columns representing individual months, and each row represents a different product across the regions. Analysis that might be performed on this data include: 
+
+Year-over-Year Trends: Analyze the sales growth for each product across different months and regions. Identify products with consistent growth or seasonal variations. 
+
+Product Sales Distribution: Assess which product is performing best in terms of overall sales across all regions. This analysis could be extended to compare performance across months.
+
+Regional Performance Comparison: Compare sales performance between the North, South, and East regions. This could reveal whether there are regional preferences for certain products, or if the same products perform differently in various regions.
+
+Sales Forecasting: Using the available monthly sales data, you could build a forecasting model to predict sales for the upcoming months, based on historical trends. 
+
+```{r}
+# Create the data as a data frame
+dataset1 <- data.frame(
+  Product_Name = c('Product A', 'Product A', 'Product A', 'Product B', 'Product B', 'Product B', 'Product C', 'Product C', 'Product C'),
+  Region = c('North', 'South', 'East', 'North', 'South', 'East', 'North', 'South', 'East'),
+  Jan_Sales = c(100, 200, 300, 150, 250, 350, 50, 100, 150),
+  Feb_Sales = c(110, 210, 310, 160, 260, 360, 55, 105, 155),
+  Mar_Sales = c(120, 220, 320, 170, 270, 370, 60, 110, 160),
+  Apr_Sales = c(130, 230, 330, 180, 280, 380, 65, 115, 165),
+  May_Sales = c(140, 240, 340, 190, 290, 390, 70, 120, 170),
+  Jun_Sales = c(150, 250, 350, 200, 300, 400, 75, 125, 175)
+)
+
+# Write the data frame to a CSV file
+write.csv(dataset1, "dataset1.csv", row.names = FALSE)
+
+cat("CSV file 'dataset1.csv' has been created.")
+```
+
+```{r}
+# Read the CSV file into a data frame
+sales_dataset1 <- read.csv("dataset1.csv")
+
+# View the first few rows of the data
+head(sales_dataset1)
+```
+
+```{r}
+# Check column names
+colnames(sales_dataset1)
+```
+
+## Using tidyr and dplyr for DATASET 1, The dataset will be Pivot from wide format to long format, where each month (Jan, Feb, Mar, etc.) will become a row under a "Month" column. And then extract the month sales values into a "Sales" column.
+
+```{r}
+# Tidy the data: Pivot the sales columns into a long format
+tidy_sales_dataset1 <- sales_dataset1 %>%
+  pivot_longer(
+    cols = starts_with("Jan"):starts_with("Jun"),  # Select the month columns
+    names_to = "Month",  # The new column for month names
+    values_to = "Sales"  # The new column for sales values
+  ) %>%
+  # Convert 'Month' to a factor with proper order
+  mutate(Month = factor(Month, levels = c("Jan_Sales", "Feb_Sales", "Mar_Sales", "Apr_Sales", "May_Sales", "Jun_Sales"))) %>%
+  # Clean up the month names by removing the "Sales" part
+  mutate(Month = sub("_Sales", "", Month))
+
+# Filter data to show only "Product A" and the first few regions
+filtered_dataset1 <- tidy_sales_dataset1 %>%
+  filter(Product_Name == "Product A" & Region %in% c("North", "South")) %>%
+  head(6)  # Limit the output to the first 6 rows
+
+# View the filtered data
+print(filtered_dataset1)
+```
+
+## dplyr is then use to group and summarize the datA from DATASET 1
+```{r}
+# Group the data by Product_Name, Region, and Month, then summarize the total Sales
+summary_sales <- tidy_sales_dataset1 %>%
+  group_by(Product_Name, Region, Month) %>%
+  summarize(Total_Sales = sum(Sales), .groups = "drop")
+
+# View the summarized data
+print(summary_sales)
+```
+
+## Plotting the Data from DATASET 1
+
+We will create a line plot where the x-axis represents the Month, the y-axis represents Total_Sales, and the lines represent each combination of Product_Name and Region.
+
+```{r}
+# Create the plot
+ggplot(summary_sales, aes(x = Month, y = Total_Sales, color = interaction(Product_Name, Region), group = interaction(Product_Name, Region))) +
+  geom_line(linewidth = 1) +  # Line plot
+  geom_point(size = 3) +  # Points at each month
+  labs(
+    title = "Total Sales by Product, Region, and Month",
+    x = "Month",
+    y = "Total Sales",
+    color = "Product and Region"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels
+  )
+```
+
+```{r}
+# Save the tidied data to a new CSV file
+write.csv(filtered_dataset1, "filtered_dataset1.csv", row.names = FALSE)
+```
+
+## Conclusion DATASET 1
+
+The sales data reveals key trends:
+
+1. Sales Growth: Sales consistently increase from January to June across all products and regions.
+
+2. Regional Differences: The East region shows the highest sales for both products, while the North region has the lowest.
+
+3. Product Comparison: Product A outperforms Product B in all regions, suggesting higher demand or popularity.
+
+4. Monthly Trends: Sales grow steadily month-over-month, indicating a positive seasonal trend.
+
+Business Implications:
+
+- East region should be prioritized for marketing and sales efforts.
+
+- Investigate why Product A is more successful than Product B.
+
+-Prepare for higher sales in summer months based on the growth trend.
+
+____________
+
+
+## DATASET 2
+
+For Dataset 2, I will be using Daniel Hanasab posted dataset. This dataset contains monthly average temperatures and humidity levels for three cities: New York, Los Angeles, and Chicago.
+
+It is untidy because:
+
+Months are represented as separate columns instead of being in a single "Month" column.
+
+Temperature and humidity are stored in separate columns for each month, rather than having a single "Measure" column with corresponding values.
+
+Each row represents a city, but instead of a single observation per row, there are multiple values in different columns.
+
+```{r}
+# Create the data frame with the temperature and humidity data
+dataset2 <- tibble(
+  City = c("New York", "Los Angeles", "Chicago"),
+  Temp_Jan = c(32, 60, 30),
+  Temp_Feb = c(35, 60, 30),
+  Temp_Mar = c(42, 65, 40),
+  Humid_Jan = c(75, 65, 80),
+  Humid_Feb = c(72, 63, 78),
+  Humid_Mar = c(68, 60, 75)
+)
+
+# Write the data frame to a CSV file
+write.csv(dataset2, "city_weather_dataset2.csv", row.names = FALSE)
+```
+
+```{r}
+# Read the CSV file into a data frame
+city_weather_dataset2 <- read.csv("city_weather_dataset2.csv")
+
+# View the data
+print(city_weather_dataset2)
+```
+
+## Tidy the Data (DataSet2)
+
+The original Data is in a "wide" format, which contains multiple columns for each month’s temperature and humidity. Pivot this data to a "long" format to make it easier to analyze.
+
+```{r}
+# Tidy the data: Pivot the temperature and humidity columns to long format
+dataset2_tidy <- city_weather_dataset2 %>%
+  pivot_longer(
+    cols = c(Temp_Jan, Temp_Feb, Temp_Mar, Humid_Jan, Humid_Feb, Humid_Mar),  # Explicitly select the columns
+    names_to = c("Variable", "Month"),  # New column names for variable type and month
+    names_sep = "_",  # Use underscore to separate variable type and month
+    values_to = "Value"  # Store values in the "Value" column
+  ) %>%
+  # Convert Month to a factor with proper order
+  mutate(Month = factor(Month, levels = c("Jan", "Feb", "Mar")),
+         Variable = factor(Variable, levels = c("Temp", "Humid")))
+
+# View the tidy data
+print(dataset2_tidy)
+```
+
+## Transform the Data (DataSet2)
+
+Transforming the data to calculate average temperatures and humidity for each city across all months.
+
+```{r}
+# Summarize the data: Calculate average temperature and humidity by city and month
+
+summary_dataset2 <- dataset2_tidy %>%
+  group_by(City, Month, Variable) %>%
+  summarize(Average_Value = mean(Value), .groups = "drop")
+
+# View the summary statistics
+print(summary_dataset2)
+```
+
+## Analyze the Data (DataSet2)
+
+Visualizing the Temperature Data
+```{r}
+# Plot the data: Create a line plot to visualize the trends of Temp and Humid across months for each city
+ggplot(summary_dataset2, aes(x = Month, y = Average_Value, color = interaction(City, Variable), group = interaction(City, Variable))) +
+  geom_line(size = 1) +  # Line plot
+  geom_point(size = 3) +  # Points at each month
+  labs(
+    title = "Average Temperature and Humidity by City and Month",
+    x = "Month",
+    y = "Average Value",
+    color = "City and Variable"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels
+  )
+```
+
+```{r}
+# Save the tidied data to a new CSV file
+write.csv(dataset2_tidy, "dataset2_tidy.csv", row.names = FALSE)
+```
+
+## Conclusion for DataSet 2
+By transforming the data into a tidy format, summarizing it to calculate average values, and visualizing it, we can clearly see the trends in temperature and humidity across different cities and months. The plot helps to compare the fluctuations in temperature and humidity for each city.
+
+
+______________
+
+
+## DATASET 3
+
+For Dataset 3, I will be using Musrat Jahan dataset posted on week 4 discussion. This data is about New York City Leading causes of Death. It is untidy because some columns can be deleted or separated into 2 columns. Leading cause of death values can be separated into two columns: the cause and the codes. Also, race and ethnicity should be separated into 2 columns. We don’t need 2 columns for death rates; just one is fine, either age adjusted or normal.
+
+The data is untidy because:
+
+- Mixed Data Types: Numeric columns contain both numbers and "." as missing values.
+
+- Multiple Variables in One Column: The "Leading Cause" column combines causes and ICD codes.
+
+- Inconsistent Formatting: Missing values are represented as "." instead of NA.
+
+- Long Format: Each observation is a row, making it harder to compare causes of death. 
+
+```{r}
+# Read the CSV file from github
+dataset3 <- read_csv("https://raw.githubusercontent.com/Badigun/Data-607-Assignments/refs/heads/main/New_York_City_Leading_Causes_of_Death.csv")
+
+# View the first few rows of the dataset
+head(dataset3)
+```
+
+## Tidy the Data for Dataset 3
+```{r}
+# Read the CSV file
+data <- fread("https://raw.githubusercontent.com/Badigun/Data-607-Assignments/refs/heads/main/New_York_City_Leading_Causes_of_Death.csv")
+
+# Replace "." with NA and convert columns to numeric
+dataset3_clean <- data %>% 
+  mutate(across(where(is.character), ~na_if(., "."))) %>% 
+  mutate(across(where(is.character), as.numeric))
+
+# View the cleaned data
+head(dataset3_clean)
+```
+
+```{r}
+# View the column names to inspect the dataset
+colnames(dataset3)
+
+# Rename columns 
+dataset3_tidy <- dataset3 %>%
+  rename(
+    Cause_of_Death = `Leading Cause`,  
+    Year = `Year`
+  )
+
+# Check for missing values
+summary(dataset3_tidy)
+
+# Remove or impute missing values
+dataset3_tidy <- dataset3 %>%
+  drop_na()  # Drops rows with missing values
+
+print(dataset3_tidy)
+```
+
+## Step 3: Transform the Data for Dataset 3
+
+```{r}
+colnames(dataset3_clean)
+```
+
+```{r}
+# Summarize deaths by cause and year
+summary_dataset3 <- dataset3_clean %>%
+  group_by(Year) %>%
+  summarise(across(starts_with("Deaths"), sum, na.rm = TRUE))
+
+# View summary
+print(summary_dataset3)
+```
+
+## Analyze and Visualize the Data for Dataset 3
+
+```{r}
+plot_dataset3 <- summary_dataset3 %>%
+  pivot_longer(cols = starts_with("Deaths"), names_to = "Cause", values_to = "Deaths")
+
+print(plot_dataset3)
+```
+
+```{r}
+# Create a bar chart of total deaths by cause
+ggplot(plot_dataset3, aes(x = reorder(Cause, -Deaths), y = Deaths)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  coord_flip() +
+  labs(
+    title = "Total Deaths by Cause in NYC",
+    x = "Cause of Death",
+    y = "Total Deaths"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# Save the tidied data to a new CSV file
+write.csv(dataset3_clean, "dataset3_clean.csv", row.names = FALSE)
+```
+
+## Conclusion for Dataset 3
+
+Based on the bar chart and analysis, we can conclude the following:
+
+- Leading Causes of Death: The bar chart clearly shows the top causes of death in New York City, with a few causes contributing significantly more deaths compared to others.
+
+- Health Priorities: Public health initiatives should focus on addressing these leading causes, as they represent the most significant health challenges for the city.
+
+- Data Quality and Improvements: Some missing values and inconsistencies were observed during data tidying, suggesting that better data collection and reporting practices could enhance future analysis.
+
+
+
+________
+
+
