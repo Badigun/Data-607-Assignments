@@ -1,0 +1,151 @@
+---
+title: "Assignment 5 DATA 607 WEEK 7"
+author: "Barakat Adigun"
+date: "2025-03-26"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+## Assignment: working with JSON, HTML, XML, and Parquet in R
+
+You have received the following data from CUNYMart, located at 123 Example Street, Anytown, USA.
+
+This data will be used for inventory analysis at the retailer. You are required to prepare the data for analysis by formatting it in JSON, HTML, XML, and Parquet. Additionally, provide the pros and cons of each format.
+
+Your must include R code for generating and importing the data into R.
+
+
+
+```{r}
+# Load Libraries
+
+library(dplyr)
+library(readr)
+library(jsonlite)
+library(xtable)
+library(xml2)
+library(XML)
+library(arrow)
+```
+
+## Load the Raw Data
+
+```{r}
+raw_data <- "Category,Item Name,Item ID,Brand,Price,Variation ID,Variation Details
+Electronics,Smartphone,101,TechBrand,699.99,101-A,Color: Black, Storage: 64GB
+Electronics,Smartphone,101,TechBrand,699.99,101-B,Color: White, Storage: 128GB
+Electronics,Laptop,102,CompuBrand,1099.99,102-A,Color: Silver, Storage: 256GB
+Electronics,Laptop,102,CompuBrand,1099.99,102-B,Color: Space Gray, Storage: 512GB
+Home Appliances,Refrigerator,201,HomeCool,899.99,201-A,Color: Stainless Steel, Capacity: 20 cu ft
+Home Appliances,Refrigerator,201,HomeCool,899.99,201-B,Color: White, Capacity: 18 cu ft
+Home Appliances,Washing Machine,202,CleanTech,499.99,202-A,Type: Front Load, Capacity: 4.5 cu ft
+Home Appliances,Washing Machine,202,CleanTech,499.99,202-B,Type: Top Load, Capacity: 5.0 cu ft
+Clothing,T-Shirt,301,FashionCo,19.99,301-A,Color: Blue, Size: S
+Clothing,T-Shirt,301,FashionCo,19.99,301-B,Color: Red, Size: M
+Clothing,T-Shirt,301,FashionCo,19.99,301-C,Color: Green, Size: L
+Clothing,Jeans,302,DenimWorks,49.99,302-A,Color: Dark Blue, Size: 32
+Clothing,Jeans,302,DenimWorks,49.99,302-B,Color: Light Blue, Size: 34
+Books,Fiction Novel,401,-,14.99,401-A,Format: Hardcover, Language: English
+Books,Fiction Novel,401,-,14.99,401-B,Format: Paperback, Language: Spanish
+Books,Non-Fiction Guide,402,-,24.99,402-A,Format: eBook, Language: English
+Books,Non-Fiction Guide,402,-,24.99,402-B,Format: Paperback, Language: French
+Sports Equipment,Basketball,501,SportsGear,29.99,501-A,Size: Size 7, Color: Orange
+Sports Equipment,Tennis Racket,502,RacketPro,89.99,502-A,Material: Graphite, Color: Black
+Sports Equipment,Tennis Racket,502,RacketPro,89.99,502-B,Material: Aluminum, Color: Silver"
+```
+
+## Create DataFrame
+
+```{r}
+dataframe <- read_csv(raw_data)
+```
+
+```{r}
+print(dataframe)
+```
+
+## JSON
+```{r}
+dataframe_json <- toJSON(dataframe, pretty = TRUE)
+cat(dataframe_json)
+```
+
+## HTML
+
+```{r}
+dataframe_html <- print(xtable(dataframe), type = "html")
+
+write(dataframe_html, file = "cunyMart_inventory.html")
+
+print("HTML file 'cunyMart_inventory.html' saved successfully.")
+```
+
+## XML
+
+```{r}
+# Function to convert data frame to XML
+dataframe_to_xml <- function(dataframe, root_name = "items") {
+  root <- newXMLNode(root_name)
+  
+  apply(dataframe, 1, function(row) {
+    item_node <- newXMLNode("item", parent = root)
+    mapply(function(colname, value) {
+      newXMLNode(colname, value, parent = item_node)
+    }, names(row), row)
+  })
+  
+  return(root)
+}
+
+# Convert the data frame to XML
+xml_data <- dataframe_to_xml(dataframe)
+
+saveXML(xml_data, file = "cunyMart_inventory.xml")
+
+cat(saveXML(xml_data))
+```
+
+## Parquet
+
+```{r}
+# Write data to Parquet
+write_parquet(dataframe, "cunyMart_inventory.parquet")
+
+# To load the data back into R
+loaded_data <- read_parquet("cunyMart_inventory.parquet")
+print(loaded_data)
+```
+
+## Pros and Cons of Each Format:
+
+## JSON:
+
+Pros: Human-readable, flexible structure (supports nested data), widely used for APIs and configuration.
+
+Cons: Can be inefficient for large datasets, not optimized for storage or speed.
+
+## HTML:
+
+Pros: Good for displaying data on web pages, easy to style with CSS, supported in web browsers.
+
+Cons: Not ideal for analysis, lacks structure for programmatic access, can be large for complex data.
+
+## XML:
+
+Pros: Hierarchical structure, widely supported, good for data interchange.
+
+Cons: Verbose, harder to parse compared to JSON, inefficient for large datasets.
+
+## Parquet:
+
+Pros: Highly efficient for large datasets, optimized for query performance, supports complex data types, and compression.
+
+Cons: Not human-readable, requires specialized libraries/tools to read.
+
+
+
+________
+
+
