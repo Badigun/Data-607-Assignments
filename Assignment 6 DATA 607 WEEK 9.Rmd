@@ -1,0 +1,124 @@
+---
+title: "Assignment 6 DATA 607 WEEK 9"
+author: "Barakat Adigun"
+date: "2025-04-08"
+output: html_document
+---
+
+
+## Assignment – Web APIs
+
+The New York Times web site provides a rich set of APIs, as described here: https://developer.nytimes.com/apis
+
+You’ll need to start by signing up for an API key.
+
+Your task is to choose one of the New York Times APIs, construct an interface in R to read in the JSON data, and transform it into an R DataFrame.
+
+## Introduction:
+For this assignment, I will be using the NYT Books API, which is great for exploring bestseller lists or get reviews of books from The New York Times.
+
+```{r}
+# Load Libraries
+
+library(httr)
+library(jsonlite)
+library(dplyr)
+```
+
+```{r}
+# API URL to be used
+# https://api.nytimes.com/svc/books/v3/lists/current/hardcover-fiction.json?api-key=YOUR_API_KEY
+
+# API APP NAME
+# BOOKS_API
+
+## API KEY
+# 4PgZzoxnUgslophwllJG2cWNHrVfzx2B
+```
+
+```{r}
+# This function is to get the NYT Best Sellers list
+getting_nyt_bestsellers <- function(list_name = "hardcover-fiction", api_key) {
+  # Construct API URL
+  base_url <- "https://api.nytimes.com/svc/books/v3/lists/current"
+  full_url <- paste0(base_url, "/", list_name, ".json?api-key=", api_key)
+  
+  # Make API request
+  response <- GET(full_url)
+  
+  # Checking for errors
+  if (http_error(response)) {
+    stop("Request failed: ", status_code(response))
+  }
+  
+  # Parse JSON response
+  content_json <- content(response, as = "text")
+  parsed <- fromJSON(content_json, flatten = TRUE)
+  
+  # Extract books and clean into a DataFrame
+  books_df <- parsed$results$books %>%
+    select(rank, title, author, description, publisher, weeks_on_list, amazon_product_url)
+  
+  return(books_df)
+}
+
+# Example usage
+api_key <- "4PgZzoxnUgslophwllJG2cWNHrVfzx2B"  
+
+# Get current bestsellers in hardcover fiction
+bestsellers_nyt <- getting_nyt_bestsellers("hardcover-fiction", api_key)
+
+# View result
+head(bestsellers_nyt)
+```
+
+## In Addition, I will like to analysis the data a bit
+
+# This is to show a basic summary statics of the current bestsellers in hardcover fiction
+```{r}
+# How many books are on the list?
+nrow(bestsellers_nyt)
+
+# Summary of weeks on the list
+summary(bestsellers_nyt$weeks_on_list)
+```
+
+# Top authors with more books on the hardcover fiction
+```{r}
+# Count authors with multiple books on the list
+bestsellers_nyt %>%
+  group_by(author) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+```
+
+# Visualization: Weeks on List
+```{r}
+library(ggplot2)
+
+ggplot(bestsellers_nyt, aes(x = reorder(title, weeks_on_list), y = weeks_on_list)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(title = "NYT Hardcover Fiction Bestsellers",
+       x = "Book Title",
+       y = "Weeks on List")
+```
+
+## Conclusion: Web APIs; NYT Books API; NYT Best Sellers Analysis
+
+I was able to successfully retrieved data from the NYT Books API and analyzed the hardcover fiction bestseller list. 
+
+Key steps included:
+
+Data Retrieval: Pulled current bestsellers and transformed the JSON data into an R data.frame.
+
+Summary Stats: We explored the number of books and their weeks on the list.
+
+Top Authors: Identified authors with the most books on the list.
+
+Visualizations: Created a bar chart of books’ weeks on the list.
+
+This analysis provides insights into bestseller trends and author popularity.
+
+
+_________________
