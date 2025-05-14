@@ -1,0 +1,240 @@
+---
+title: "Final Project Presentation DATA 607 - Three-Point Revolution – NBA 2000 to 2024"
+subtitle: "Exploring the Relationship Between Shooting and Winning"
+author: "Barakat Adigun"
+date: "2025-05-12"
+output: 
+  powerpoint_presentation: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Slide with R Output
+
+```{r}
+# Load necessary libraries for data manipulation and reading
+
+library(dplyr)
+library(readr)
+library(ggplot2)
+```
+
+## Slide with R Output
+
+```{r}
+# Load your dataset from CSV
+
+nba <- read_csv("DATA 607 Final Project Dataset NBA Stats.csv")
+nba1 <- nba
+```
+
+## Introduction
+
+**Context:**
+
+* The NBA has transformed over the past two decades, largely driven by analytics.
+* The Houston Rockets famously pioneered a data-driven focus on the 3-point shot.
+* Our project analyzes three-point trends and their relationship with win percentage from **2000–2024**.
+* Focus: Data preparation > Analysis.
+
+## Data Sources
+
+* 📊 **Basketball-Reference.com**
+
+  * Team-level 3P stats by season 
+  
+* 🔗 **NBA API or HTML tables**
+
+  * Team wins, losses, and win percentages (parsed from JSON or HTML).
+  
+## Project Goals
+
+* Track league-wide changes in:
+
+  * 3-point **volume** (3PA)
+  * 3-point **accuracy** (3P%)
+* Investigate how these relate to **team success** (win percentage).
+* Emphasize data wrangling, merging, and tidying over statistical complexity.
+* Focus on **data acquisition and preparation**, not just analysis.
+
+```{r}
+nba <- nba %>%
+  mutate(
+    # Win margin = total wins minus total losses
+    WinMargin = WINS - LOSSES,
+    
+    # 3-point make rate = total made 3s divided by total attempted 3s
+    # Should be approximately equal to the FG3_PCT column
+    FG3M_Rate = FG3M_total / FG3A_total,
+    
+    # 3-point makes per win: shows how reliant a team was on 3s for its victories
+    FG3M_per_Win = ifelse(WINS > 0, FG3M_total / WINS, NA)  # avoid divide-by-zero
+  )
+```
+
+```{r}
+## Compute Relative-to-League-Average Metrics(per season)
+
+# These show how each team compares to the league average in that same season
+
+nba <- nba %>%
+  group_by(Season) %>%
+  mutate(
+    FG3A_rel_to_avg = FG3A_total - mean(FG3A_total, na.rm = TRUE),
+    FG3_PCT_rel_to_avg = FG3_PCT - mean(FG3_PCT, na.rm = TRUE),
+    WinPCT_rel_to_avg = WinPCT - mean(WinPCT, na.rm = TRUE)
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# Year-over-Year Changes by Team
+
+# This helps analyze how teams are evolving over time
+ nba <- nba %>%
+  arrange(TeamName, Season) %>%
+  group_by(TeamName) %>%
+  mutate(
+    FG3A_total_change = FG3A_total - lag(FG3A_total),
+    WinPCT_change = WinPCT - lag(WinPCT)
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# Add Era Classification Buckets
+
+# Manually classify NBA seasons into eras based on analytics usage
+
+nba <- nba %>%
+  mutate(
+    Era = case_when(
+      Season <= 2009 ~ "Pre-Analytics",
+      Season <= 2014 ~ "Adoption",
+      TRUE ~ "Revolution"
+    )
+  )
+```
+
+## Slide with R Output
+
+```{r}
+#Preview the Transformed Data
+
+# Gives a summary of column names, types, and example values
+
+glimpse(nba)
+names(nba)
+```
+
+```{r}
+# Summary stats per season
+
+nba_summary <- nba %>%
+  group_by(Season) %>%
+  summarise(
+    avg_FG3A = mean(FG3A_total, na.rm = TRUE),
+    avg_FG3PCT = mean(FG3_PCT, na.rm = TRUE),
+    avg_WinPCT = mean(WinPCT, na.rm = TRUE)
+  )
+```
+
+## Slide with R Output
+
+```{r}
+# Linear model: how 3PA and 3P% predict Win%
+
+model <- lm(WinPCT ~ FG3A_total + FG3_PCT, data = nba)
+summary(model)
+```
+
+## Slide with R Output
+
+```{r}
+# Visualization 1: League-wide 3-point trends over time
+
+ggplot(nba_summary, aes(x = Season)) +
+  geom_line(aes(y = avg_FG3A), color = "blue", size = 1.2) +
+  geom_line(aes(y = avg_FG3PCT * 1000), color = "red", size = 1.2, linetype = "dashed") +
+  labs(
+    title = "League-Wide 3-Point Trends (2000–2024)",
+    y = "3PA (blue) / 3P% * 1000 (red, dashed)",
+    x = "Season"
+  ) +
+  theme_minimal()
+```
+
+## Slide with R Output
+
+```{r}
+# Visualization 2: Correlation between 3PA and Winning %
+
+ggplot(nba, aes(x = FG3A_total, y = WinPCT)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(
+    title = "3-Point Attempts vs. Win Percentage",
+    x = "Total 3PA",
+    y = "Winning Percentage"
+  ) +
+  theme_minimal()
+```
+
+## Data Cleaning & Transformation
+
+* **From Basketball-Reference:**
+  * Scrape HTML tables (per season).
+  * Clean column names, convert stats to numeric.
+  * Add a “Season” column to track year-over-year data.
+
+* **From NBA API:**
+
+  * Extract JSON payload using `jsonlite::fromJSON()`.
+  * Flatten nested lists into a dataframe with `purrr::map_df()` or `dplyr::bind_rows()`.
+  * Keep key fields: `Team`, `Wins`, `Losses`, `Win%`.
+  * Normalize team names to ensure proper joins.
+
+* **Final Step:**
+
+  * **Join** shooting and standings data by `Team` and `Season`.
+  * Result: One **tidy dataframe** ready for plotting and regression.
+
+## Why This Matters
+
+* The assignment emphasizes **data preparation** as the core skill.
+* Proper wrangling ensures accurate, reproducible insights.
+* Clean data = Better models, better visualizations, better storytelling.
+
+## Project Sharing
+
+Title: Output and Sharing
+
+* Code and report documented in RMarkdown
+* Shared via:
+  * RPubs (for public viewing)
+  * GitHub (with full source and raw data)
+* Tools used: rvest, jsonlite, dplyr, tidyverse, ggplot2
+
+## NOTED
+
+We visualized the relationship between 3-point shooting and team success using scatterplots and trend lines. A time-series plot showed the league-wide increase in 3-point attempts from 2000 to 2024. A second plot displayed how 3-point accuracy (FG3%) correlates more strongly with team win percentage than just the volume of 3-point shots attempted. These visuals helped us uncover patterns and test our hypothesis about the importance of shooting efficiency
+
+The regression analysis showed that 3-point accuracy (FG3%) has a strong and statistically significant impact on team win percentage, while total 3-point attempts (FG3A_total) do not. This suggests that simply shooting more 3s doesn’t lead to winning—making them efficiently does. Our results highlight the importance of quality over quantity in modern NBA 3-point strategy.
+
+## Conclusion
+
+* The NBA's shift toward the 3-point shot is quantifiable and transformative.
+* From 2000 to 2024, both volume and efficiency of 3-point shooting have increased steadily.
+* Teams with higher 3-point attempt rates and shooting accuracy tend to win more games.
+* Data preparation — cleaning, calculating relative metrics, and structuring by season — was key to uncovering these patterns.
+* This approach mirrors the real-world strategies used by teams like the Houston Rockets, demonstrating the value of analytics in shaping outcomes.
+
+## Question
+
+Title: Thank You!
+Open for questions or feedback.
+
+---
