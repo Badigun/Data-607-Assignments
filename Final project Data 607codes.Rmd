@@ -1,0 +1,111 @@
+---
+title: "Final Project DATA 607"
+author: "Barakat Adigun, Ali Ahamed, Daniel Hanasab"
+date: "2025-05-06"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+# Load necessary libraries for data manipulation and reading
+library(dplyr)
+library(readr)
+library(ggplot2)
+
+# Load your dataset from CSV
+# Make sure the file path is correct (it should be in your working directory or full path provided)
+nba <- read_csv("DATA 607 Final Project Dataset NBA Stats.csv")
+nba1 <- nba
+
+nba <- nba %>%
+  mutate(
+    # Win margin = total wins minus total losses
+    WinMargin = WINS - LOSSES,
+    
+    # 3-point make rate = total made 3s divided by total attempted 3s
+    # Should be approximately equal to the FG3_PCT column
+    FG3M_Rate = FG3M_total / FG3A_total,
+    
+    # 3-point makes per win: shows how reliant a team was on 3s for its victories
+    FG3M_per_Win = ifelse(WINS > 0, FG3M_total / WINS, NA)  # avoid divide-by-zero
+  )
+
+
+# 2. Compute Relative-to-League-Average Metrics
+# These show how each team compares to the league average in that same season
+nba <- nba %>%
+  group_by(Season) %>%
+  mutate(
+    # Difference between a team's total 3PA and the league average that year
+    FG3A_rel_to_avg = FG3A_total - mean(FG3A_total, na.rm = TRUE),
+    
+    # Difference in 3P% from the league average
+    FG3_PCT_rel_to_avg = FG3_PCT - mean(FG3_PCT, na.rm = TRUE),
+    
+    # Difference in win % from league average that year
+    WinPCT_rel_to_avg = WinPCT - mean(WinPCT, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# 3. Year-over-Year Changes per Team
+# This helps analyze how teams are evolving over time
+nba <- nba %>%
+  arrange(TeamName, Season) %>%  # Ensure rows are sorted correctly
+  group_by(TeamName) %>%
+  mutate(
+    # Change in 3PA total from last season
+    FG3A_total_change = FG3A_total - lag(FG3A_total),
+    
+    # Change in win % from last season
+    WinPCT_change = WinPCT - lag(WinPCT)
+  ) %>%
+  ungroup()
+
+# 4. Add Era Classification Buckets
+# Manually classify NBA seasons into eras based on analytics usage
+nba <- nba %>%
+  mutate(
+    Era = case_when(
+      Season <= 2009 ~ "Pre-Analytics",   # Before modern 3-point explosion
+      Season <= 2014 ~ "Adoption",        # Growing adoption of analytics
+      TRUE ~ "Revolution"                 # Full embrace of 3-point-focused strategy
+    )
+  )
+
+# 5. Preview the Transformed Data
+# Gives a summary of column names, types, and example values
+glimpse(nba)
+names(nba)     
+
+#View(nba)
+
+
+```
+
+```{r}
+nba_summary <- nba %>%
+  group_by(Season) %>%
+  summarise(
+    avg_FG3A = mean(FG3A_total),
+    avg_FG3PCT = mean(FG3_PCT),
+    avg_WinPCT = mean(WinPCT)
+  )
+
+model <- lm(WinPCT ~ FG3A_total + FG3_PCT, data = nba)
+summary(model)
+
+ggplot(nba_summary, aes(x = Season)) +
+  geom_line(aes(y = avg_FG3A), color = "blue") +
+  geom_line(aes(y = avg_FG3PCT * 1000), color = "red") +  # scaled for display
+  labs(title = "League-Wide 3-Point Trends", y = "Value", x = "Season")
+
+ggplot(nba, aes(x = FG3A_total, y = WinPCT)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "3-Point Attempts vs. Win Percentage",
+       x = "Total 3PA",
+       y = "Winning Percentage")
+
+
+```
