@@ -1,0 +1,97 @@
+---
+title: "Week 11 Recommender Systems DATA 607"
+author: "Barakat Adigun"
+date: "2025-05-16"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+# Overview
+
+Recommender systems play a vital role in shaping user experiences on digital platforms. LinkedIn, the world’s largest professional networking site, leverages recommendation algorithms to suggest jobs, connections, courses, and content tailored to each user. This personalized experience drives user engagement, job applications, and networking outcomes, making the recommender system central to LinkedIn’s value proposition.
+
+This report performs a scenario design analysis from both LinkedIn's and the user's perspectives, reverse-engineers key aspects of its recommendation engine, and offers practical suggestions for future improvements.
+
+---
+
+# Recommender System Analysis: LinkedIn
+
+## 1. Scenario Design Analysis
+
+### A. For the Organization (LinkedIn)
+
+- **Target Users**: Professionals, recruiters, job seekers, entrepreneurs.
+- **Goals**:
+  - Increase engagement
+  - Promote subscriptions (e.g., Premium)
+  - Encourage job applications and connections
+- **Supported Activities**:
+  - Discovering jobs
+  - Building networks
+  - Consuming relevant content
+
+**Scenarios**:
+- A recruiter seeks software engineers — LinkedIn recommends qualified candidates.
+- A job seeker updates their title — the system surfaces jobs in that role.
+- A user follows AI posts — they begin to receive related courses and thought leaders.
+
+### B. For the Users
+
+- **User Types**: Job seekers, passive professionals, recruiters, content creators.
+- **Goals**:
+  - Find jobs or candidates
+  - Stay informed professionally
+  - Build a reputation/network
+
+**Scenarios**:
+- A user explores content on marketing — LinkedIn suggests courses and connections in that field.
+- A new graduate is shown internships, alumni, and beginner career advice posts.
+- A sales manager receives AI-curated leads via Sales Navigator.
+
+## 2. Reverse Engineering the Recommender System
+
+### System Features
+
+- "Jobs You May Be Interested In"
+- "People You May Know"
+- "Top Posts in Your Network"
+- "Courses for You" (LinkedIn Learning)
+
+### Likely Algorithms Used
+
+- **Graph-Based Recommendations**: Friend-of-a-friend logic for network expansion.
+- **Collaborative Filtering**: Based on behavior of similar users.
+- **Content-Based Filtering**: Using user profile data and job/post metadata.
+- **Deep Learning/NLP**: Matching resumes to job descriptions.
+- **Reinforcement Learning**: Adapts feeds in real-time based on engagement.
+
+## 3. Recommendations for Improvement
+
+### A. More User Control
+
+- Let users rate or suppress topics and suggestions (e.g., "less like this").
+- Introduce a preference dashboard (industry focus, learning goals).
+
+### B. Career Transition Guidance
+
+- Suggest career paths for users transitioning roles (e.g., “From teacher to UX designer”).
+
+### C. Transparent Recommendations
+
+- Show why a job or post is shown (e.g., "Based on your skill in Python and your connection to Jane").
+
+### D. Network Diversity
+
+- Introduce occasional content from outside the user’s echo chamber (cross-industry or cross-location).
+
+### E. Cold Start Onboarding
+
+- Ask new users if they’re job-seeking, hiring, or networking.
+- Tailor initial recommendations by career stage and goals.
+
+## 4. Conclusion
+
+LinkedIn’s recommender system is essential for personalized job discovery, professional networking, and content engagement. It blends collaborative and content-based filtering with real-time feedback. While effective, further improvements in transparency, diversity, and user control could enhance its impact for both users and recruiters.
+
